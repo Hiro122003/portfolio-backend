@@ -2,13 +2,19 @@ const express = require("express");
 const { PrismaClient } = require("@prisma/client");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-const router = require('express').Router()
+const router = require("express").Router();
+const generateIdenticon = require('../utils/generateIdenticon')
 
-const prisma = new PrismaClient();
+const supabase = require("@supabase/supabase-js");
+const prisma = new PrismaClient()
 
 // 新規ユーザー登録用API
 router.post("/register", async (req, res) => {
   const { username, email, password } = req.body;
+
+  const defaultIconImage = generateIdenticon(email) 
+  // console.log(defaultIconImage)
+
   const hashedPassword = await bcrypt.hash(password, 10);
   try {
     const user = await prisma.user.create({
@@ -16,14 +22,16 @@ router.post("/register", async (req, res) => {
         username,
         email,
         password: hashedPassword,
-        profile:{
-          create:{
+        profile: {
+          create: {
             bio: "Nice to meet you",
-            profileImageUrl : "sample.png"
-          }
-        }
+            profileImageUrl: defaultIconImage
+          },
+        },
       },
-      
+      include:{
+        profile:true
+      }
     });
     res.status(200).json({ message: "ユーザー登録に成功しました。", user });
   } catch (error) {
